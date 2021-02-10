@@ -115,7 +115,7 @@ class net_crossInteraction(nn.Module):
 
         return loss
 
-    def forward_inter_affn(self, prot_data1, prot_data2, drug_data_ver, drug_data_adj, prot_contacts1, prot_contacts2):
+    def forward_inter_affn(self, prot_data1, prot_data2, prot_contacts1, prot_contacts2):
         # protein embedding 1
         aminoAcid_embedding1 = self.mod_aminoAcid_embedding(prot_data1)
 
