@@ -4,6 +4,11 @@
 **TODO3**: Finish coding utils.py according to TODO1, TODO2 and procudures of analyzing the results
 **TODO4**: Improve the model (transformer?)
 
+**Extracted_data:**
+```
+https://drive.google.com/drive/folders/1Dl8p7dKjkDPfw4fFH4sw4IVA8noyzx0y
+Includes data from iRefWeb and Negatome
+```
 
 
 **Training:**

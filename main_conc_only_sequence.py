@@ -7,8 +7,7 @@ import argparse
 import random
 from tqdm import tqdm
 
-#Go to run->edit configuration->parameter paste the following line. that is how you can pass argument as parser and also put stop point. then run debug as usual
-#--train 1 --l0 0.001 --l1 0.001 --l2 0.001 --l3 1000 --data_processed_dir /home/at/work/data_processed/
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--l0', type=float, default=0.01)
 parser.add_argument('--l1', type=float, default=0.01)
@@ -17,7 +16,7 @@ parser.add_argument('--l3', type=float, default=1000.0)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--epoch', type=int, default=200)
 parser.add_argument('--train', type=int, default=0)
-parser.add_argument('--data_processed_dir', type=str, default='/home/at/work/dataset/ECEN_404_dataset/vector_machine_data/')
+parser.add_argument('--data_processed_dir', type=str, default='/scratch/user/rujieyin/proj/PPI_Detection_Xmodality/data_processed/')
 args = parser.parse_args()
 print(args)
 
@@ -36,7 +35,7 @@ class net_crossInteraction(nn.Module):
         self.mod_aminoAcid_embedding = nn.Embedding(29, 256)
         self.gru0 = nn.GRU(256, 256, batch_first=True)
         self.gru1 = nn.GRU(256, 256, batch_first=True)
-        self.gat = net_prot_gat()
+        self.gat = net_prot_gat() ##### GAT
         self.crossInteraction = crossInteraction() ########
         # self.gcn_comp = net_comp_gcn() ###########
 
@@ -59,7 +58,7 @@ class net_crossInteraction(nn.Module):
         self.lambda_l1, self.lambda_fused, self.lambda_group = lambda_l1, lambda_fused, lambda_group
         self.lambda_bind = lambda_bind
 
-    def forward(self, prot_data1, prot_data2, prot_contacts1, prot_contacts2, prot_inter, prot_inter_exist, label):   ####################### todo: add protein2
+    def forward(self, prot_data1, prot_data2, label):   
         # protein embedding 1
         aminoAcid_embedding1 = self.mod_aminoAcid_embedding(prot_data1)
 
@@ -70,8 +69,8 @@ class net_crossInteraction(nn.Module):
         prot_seq_embedding1, _ = self.gru1(prot_seq_embedding1)
         prot_seq_embedding1 = prot_seq_embedding1.reshape(b, i*j, d)
 
-        prot_graph_embedding1 = aminoAcid_embedding1.reshape(b, i*j, d)
-        prot_graph_embedding1 = self.gat(prot_graph_embedding1, prot_contacts1)
+        # prot_graph_embedding1 = aminoAcid_embedding1.reshape(b, i*j, d)    ###### GAT
+        # prot_graph_embedding1 = self.gat(prot_graph_embedding1, prot_contacts1)   ###### GAT / prot_graph_embedding and prot_seq_embedding are of the same shape
 
 
         # protein embedding 2
@@ -84,17 +83,17 @@ class net_crossInteraction(nn.Module):
         prot_seq_embedding2, _ = self.gru1(prot_seq_embedding2)
         prot_seq_embedding2 = prot_seq_embedding2.reshape(b, i*j, d)
 
-        prot_graph_embedding2 = aminoAcid_embedding2.reshape(b, i*j, d)
-        prot_graph_embedding2 = self.gat(prot_graph_embedding2, prot_contacts2)
+        # prot_graph_embedding2 = aminoAcid_embedding2.reshape(b, i*j, d)    ###### GAT
+        # prot_graph_embedding2 = self.gat(prot_graph_embedding2, prot_contacts2)   ###### GAT / prot_graph_embedding and prot_seq_embedding are of the same shape
 
 
 
 
-        prot_embedding1 = self.crossInteraction(prot_seq_embedding1, prot_graph_embedding1)
-        prot_embedding2 = self.crossInteraction(prot_seq_embedding2, prot_graph_embedding2)
+        # prot_embedding1 = self.crossInteraction(prot_seq_embedding1, prot_graph_embedding1)
+        # prot_embedding2 = self.crossInteraction(prot_seq_embedding2, prot_graph_embedding2)
 
-        # # compound embedding
-        # comp_embedding = self.gcn_comp(drug_data_ver, drug_data_adj)
+        prot_embedding1 = prot_seq_embedding1
+        prot_embedding2 = prot_seq_embedding2
 
         # protein-protein interaction
         inter_prot_prot = self.sigmoid(torch.einsum('bij,bkj->bik', self.joint_attn_prot1(self.relu(prot_embedding1)), self.joint_attn_prot2(self.relu(prot_embedding2))))
@@ -111,12 +110,12 @@ class net_crossInteraction(nn.Module):
         affn_prot_prot = affn_prot_prot.view(b, 64*32)
         affn_prot_prot = self.regressor1(affn_prot_prot)
 
-        loss0, loss1, loss2 = self.loss_reg(inter_prot_prot, fused_matrix.to(inter_prot_prot.device), prot_contacts2), self.loss_inter(inter_prot_prot, prot_inter, prot_inter_exist), self.loss_affn(affn_prot_prot, label)
-        loss = loss0 + loss1 + loss2
+        loss0, loss1 = self.loss_reg(inter_prot_prot, fused_matrix.to(inter_prot_prot.device)), self.loss_affn(affn_prot_prot, label)
+        loss = loss0 + loss1
 
         return loss
 
-    def forward_inter_affn(self, prot_data1, prot_data2, prot_contacts1, prot_contacts2):
+    def forward_inter_affn(self, prot_data1, prot_data2):
         # protein embedding 1
         aminoAcid_embedding1 = self.mod_aminoAcid_embedding(prot_data1)
 
@@ -127,8 +126,8 @@ class net_crossInteraction(nn.Module):
         prot_seq_embedding1, _ = self.gru1(prot_seq_embedding1)
         prot_seq_embedding1 = prot_seq_embedding1.reshape(b, i*j, d)
 
-        prot_graph_embedding1 = aminoAcid_embedding1.reshape(b, i*j, d)
-        prot_graph_embedding1 = self.gat(prot_graph_embedding1, prot_contacts1)
+        # prot_graph_embedding1 = aminoAcid_embedding1.reshape(b, i*j, d)
+        # prot_graph_embedding1 = self.gat(prot_graph_embedding1, prot_contacts1)
 
 
         # protein embedding 2
@@ -141,14 +140,15 @@ class net_crossInteraction(nn.Module):
         prot_seq_embedding2, _ = self.gru1(prot_seq_embedding2)
         prot_seq_embedding2 = prot_seq_embedding2.reshape(b, i*j, d)
 
-        prot_graph_embedding2 = aminoAcid_embedding2.reshape(b, i*j, d)
-        prot_graph_embedding2 = self.gat(prot_graph_embedding2, prot_contacts2)
+        # prot_graph_embedding2 = aminoAcid_embedding2.reshape(b, i*j, d)
+        # prot_graph_embedding2 = self.gat(prot_graph_embedding2, prot_contacts2)
+
+        prot_embedding1 = prot_seq_embedding1
+        prot_embedding2 = prot_seq_embedding2
 
 
-
-
-        prot_embedding1 = self.crossInteraction(prot_seq_embedding1, prot_graph_embedding1)
-        prot_embedding2 = self.crossInteraction(prot_seq_embedding2, prot_graph_embedding2)
+        # prot_embedding1 = self.crossInteraction(prot_seq_embedding1, prot_graph_embedding1)
+        # prot_embedding2 = self.crossInteraction(prot_seq_embedding2, prot_graph_embedding2)
 
         # # compound embedding
         # comp_embedding = self.gcn_comp(drug_data_ver, drug_data_adj)
@@ -170,16 +170,15 @@ class net_crossInteraction(nn.Module):
 
         return inter_prot_prot, affn_prot_prot
 
-    def loss_reg(self, inter, fused_matrix, prot_contacts2):     ################## TODO: symmetric?
+    def loss_reg(self, inter, fused_matrix):     
         reg_l1 = torch.abs(inter).sum(dim=(1,2)).mean()
         reg_fused = torch.abs(torch.einsum('bij,ti->bjt', inter, fused_matrix)).sum(dim=(1,2)).mean()
-        # reg_group = ( torch.sqrt(torch.einsum('bij,bki->bjk', inter**2, prot_contacts).sum(dim=1)) * torch.sqrt(prot_contacts.sum(dim=2)) ).sum(dim=1).mean()
-        group = torch.einsum('bij,bki->bjk', inter**2, prot_contacts2).sum(dim=1)
-        group[group==0] = group[group==0] + 1e10
-        reg_group = ( torch.sqrt(group) * torch.sqrt(prot_contacts2.sum(dim=2)) ).sum(dim=1).mean()
-        # reg_group = ( torch.einsum('bij,bki->bjk', inter**2, prot_contacts).sum(dim=1) * prot_contacts.sum(dim=2) ).sum(dim=1).mean()
-
-        reg_loss = self.lambda_l1 * reg_l1 + self.lambda_fused * reg_fused + self.lambda_group * reg_group
+        
+        # group = torch.einsum('bij,bki->bjk', inter**2, prot_contacts2).sum(dim=1)
+        # group[group==0] = group[group==0] + 1e10
+        # reg_group = ( torch.sqrt(group) * torch.sqrt(prot_contacts2.sum(dim=2)) ).sum(dim=1).mean()
+        
+        reg_loss = self.lambda_l1 * reg_l1 + self.lambda_fused * reg_fused
         return reg_loss
 
     def loss_inter(self, inter, prot_inter, prot_inter_exist):
@@ -244,45 +243,40 @@ class crossInteraction(nn.Module):
         return x
 
 
-# class net_comp_gcn(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-#         self.linear = nn.ModuleList([nn.Linear(43, 256), nn.Linear(256, 256), nn.Linear(256, 256)])
-#         self.relu = nn.ReLU()
-#         self.linear_final = nn.Linear(256, 256)
+class net_comp_gcn(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.linear = nn.ModuleList([nn.Linear(43, 256), nn.Linear(256, 256), nn.Linear(256, 256)])
+        self.relu = nn.ReLU()
+        self.linear_final = nn.Linear(256, 256)
 
-#     def forward(self, x, adj):
-#         for l in range(3):
-#             x = self.linear[l](x)
-#             x = torch.einsum('bij,bjd->bid', adj, x)
-#             x = self.relu(x)
-#         x = self.linear_final(x)
-#         return x
+    def forward(self, x, adj):
+        for l in range(3):
+            x = self.linear[l](x)
+            x = torch.einsum('bij,bjd->bid', adj, x)
+            x = self.relu(x)
+        x = self.linear_final(x)
+        return x
 
-
+import scipy.sparse
 class dataset(torch.utils.data.Dataset):
     def __init__(self, name_split='train'):
         if name_split == 'train':
-            #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_train_data(args.data_processed_dir)
-            self.prot_data1, self.prot_data2, self.label = load_train_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, _, self.label = load_train_data(args.data_processed_dir)
         elif name_split == 'val':
-            self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_val_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, _, self.label = load_val_data(args.data_processed_dir)
         elif name_split == 'test':
-            self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_test_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, _, self.label = load_test_data(args.data_processed_dir)
         elif name_split == 'one_unseen_prot':
-            self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_uniqOne_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, _, self.label = load_uniqOne_data(args.data_processed_dir)
         elif name_split == 'unseen_both':
-            self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_uniqTwo_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, _, self.label = load_uniqTwo_data(args.data_processed_dir)
 
-        #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, self.prot_inter, self.prot_inter_exist, self.label = torch.tensor(self.prot_data1), torch.tensor(self.prot_data2), torch.tensor(self.prot_contacts1).float(), torch.tensor(self.prot_contacts2).float(), torch.tensor(self.prot_inter).float(), torch.tensor(self.prot_inter_exist).float().squeeze().float(), torch.tensor(self.label).float()
-        self.prot_data1, self.prot_data2, self.label = torch.tensor(
-            self.prot_data1), torch.tensor(self.prot_data2), torch.tensor(self.label).float()
-
-
+        self.prot_data1, self.prot_data2, self.label = torch.tensor(self.prot_data1), torch.tensor(self.prot_data2), torch.tensor(self.label).float()
     def __len__(self):
         return [self.prot_data1.size()[0], self.prot_data2.size()[0]]
     def __getitem__(self, index):
-        return self.prot_data1[index], self.prot_data2[index], self.prot_contacts1[index], self.prot_contacts2[index], self.prot_inter[index], self.prot_inter_exist[index], self.label[index]
+        return self.prot_data1[index], self.prot_data2[index], self.label[index]
 
 
 
@@ -304,11 +298,11 @@ if args.train == 1:
     for epoch in range(args.epoch):
         model.train()
         loss_epoch, batch = 0, 0
-        for prot_data1, prot_data2, prot_contacts1, prot_contacts2, prot_inter, prot_inter_exist, label in train_loader:
-            prot_data1, prot_data2, prot_contacts1, prot_contacts2, prot_inter, prot_inter_exist, label = prot_data1.cuda(), prot_data2.cuda(), prot_contacts1.cuda(), prot_contacts2.cuda(), prot_inter.cuda(), prot_inter_exist.cuda(), label.cuda()
+        for prot_data1, prot_data2, label in train_loader:
+            prot_data1, prot_data2, label = prot_data1.cuda(), prot_data2.cuda(), label.cuda()
 
             optimizer.zero_grad()
-            loss = model(prot_data1, prot_data2, prot_contacts1, prot_contacts2, prot_inter, prot_inter_exist, label).mean()
+            loss = model(prot_data1, prot_data2, label).mean()
             # print('epoch', epoch, 'batch', batch, loss.detach().cpu().numpy())
 
             loss.backward()
@@ -319,10 +313,10 @@ if args.train == 1:
 
         model.eval()
         loss_epoch_val, batch_val = 0, 0
-        for prot_data1, prot_data2, prot_contacts1, prot_contacts2, prot_inter, prot_inter_exist, label in val_loader:
-            prot_data1, prot_data2, prot_contacts1, prot_contacts2, prot_inter, prot_inter_exist, label = prot_data1.cuda(), prot_data2.cuda(), prot_contacts1.cuda(), prot_contacts2.cuda(), prot_inter.cuda(), prot_inter_exist.cuda(), label.cuda()
+        for prot_data1, prot_data2, label in val_loader:
+            prot_data1, prot_data2, label = prot_data1.cuda(), prot_data2.cuda(), label.cuda()
             with torch.no_grad():
-                loss = model(prot_data1, prot_data2, prot_contacts1, prot_contacts2, prot_inter, prot_inter_exist, label).mean()
+                loss = model(prot_data1, prot_data2, label).mean()
             loss_epoch_val += loss.detach().cpu().numpy()
             batch_val += 1
 
