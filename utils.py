@@ -51,15 +51,25 @@ comp_max_size = 56
 
 
 def load_train_data(data_processed_dir):
-    protein_train = np.load(data_processed_dir+'protein_train.npy')
-    compound_train_ver = np.load(data_processed_dir+'compound_train_ver.npy')
-    compound_train_adj = np.load(data_processed_dir+'compound_train_adj.npy')
-    prot_train_contacts = np.load(data_processed_dir+'prot_train_contacts.npy')
-    prot_train_contacts_true = np.load(data_processed_dir+'prot_train_contacts_true.npy')
-    prot_train_inter = np.load(data_processed_dir+'prot_train_inter.npy')
-    prot_train_inter_exist = np.load(data_processed_dir+'prot_train_inter_exist.npy')
-    IC50_train = np.load(data_processed_dir+'IC50_train.npy')
-    return protein_train, compound_train_ver, compound_train_adj, prot_train_contacts, prot_train_contacts_true, prot_train_inter, prot_train_inter_exist, IC50_train
+    protein_P_A = np.load(data_processed_dir+'TRAINING_positivesA_2021_02_11-03__48_27.npy')
+    protein_N_A = np.load(data_processed_dir+'TRAINING_negativesA_2021_02_11-03__47_32.npy')
+    protein_train_A = np.concatenate((protein_P_A, protein_N_A))
+    protein_P_B = np.load(data_processed_dir + 'TRAINING_positivesB_2021_02_11-03__48_27.npy')
+    protein_N_B = np.load(data_processed_dir + 'TRAINING_negativesB_2021_02_11-03__47_32.npy')
+    protein_train_B = np.concatenate((protein_P_B, protein_N_B))
+    lable_P = np.load(data_processed_dir + 'TRAINING_positive_label.npy')
+    lable_N = np.load(data_processed_dir + 'TRAINING_negative_label.npy')
+    #compound_train_ver = np.load(data_processed_dir+'compound_train_ver.npy')
+    #compound_train_adj = np.load(data_processed_dir+'compound_train_adj.npy')
+    #prot_train_contacts = np.load(data_processed_dir+'prot_train_contacts.npy')
+    #prot_train_contacts_true = np.load(data_processed_dir+'prot_train_contacts_true.npy')
+    #prot_train_inter = np.load(data_processed_dir+'prot_train_inter.npy')
+    #prot_train_inter_exist = np.load(data_processed_dir+'prot_train_inter_exist.npy')
+    #protein_train = np.load(data_processed_dir + 'protein_train.npy')
+    #IC50_train = np.load(data_processed_dir+'IC50_train.npy')
+    IC50_train = np.concatenate((lable_P,lable_N))
+    return protein_train_A, protein_train_B, IC50_train
+    #return protein_train, compound_train_ver, IC50_train
 
 
 def load_val_data(data_processed_dir):

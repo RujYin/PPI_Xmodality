@@ -7,7 +7,8 @@ import argparse
 import random
 from tqdm import tqdm
 
-
+#Go to run->edit configuration->parameter paste the following line. that is how you can pass argument as parser and also put stop point. then run debug as usual
+#--train 1 --l0 0.001 --l1 0.001 --l2 0.001 --l3 1000 --data_processed_dir /home/at/work/data_processed/
 parser = argparse.ArgumentParser()
 parser.add_argument('--l0', type=float, default=0.01)
 parser.add_argument('--l1', type=float, default=0.01)
@@ -16,7 +17,7 @@ parser.add_argument('--l3', type=float, default=1000.0)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--epoch', type=int, default=200)
 parser.add_argument('--train', type=int, default=0)
-parser.add_argument('--data_processed_dir', type=str, default='/scratch/user/rujieyin/proj/PPI_Detection_Xmodality/data_processed/')
+parser.add_argument('--data_processed_dir', type=str, default='/home/at/work/dataset/ECEN_404_dataset/vector_machine_data/')
 args = parser.parse_args()
 print(args)
 
@@ -262,7 +263,8 @@ class crossInteraction(nn.Module):
 class dataset(torch.utils.data.Dataset):
     def __init__(self, name_split='train'):
         if name_split == 'train':
-            self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_train_data(args.data_processed_dir)
+            #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_train_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, self.label = load_train_data(args.data_processed_dir)
         elif name_split == 'val':
             self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_val_data(args.data_processed_dir)
         elif name_split == 'test':
@@ -272,7 +274,11 @@ class dataset(torch.utils.data.Dataset):
         elif name_split == 'unseen_both':
             self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_uniqTwo_data(args.data_processed_dir)
 
-        self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, self.prot_inter, self.prot_inter_exist, self.label = torch.tensor(self.prot_data1), torch.tensor(self.prot_data2), torch.tensor(self.prot_contacts1).float(), torch.tensor(self.prot_contacts2).float(), torch.tensor(self.prot_inter).float(), torch.tensor(self.prot_inter_exist).float().squeeze().float(), torch.tensor(self.label).float()
+        #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, self.prot_inter, self.prot_inter_exist, self.label = torch.tensor(self.prot_data1), torch.tensor(self.prot_data2), torch.tensor(self.prot_contacts1).float(), torch.tensor(self.prot_contacts2).float(), torch.tensor(self.prot_inter).float(), torch.tensor(self.prot_inter_exist).float().squeeze().float(), torch.tensor(self.label).float()
+        self.prot_data1, self.prot_data2, self.label = torch.tensor(
+            self.prot_data1), torch.tensor(self.prot_data2), torch.tensor(self.label).float()
+
+
     def __len__(self):
         return [self.prot_data1.size()[0], self.prot_data2.size()[0]]
     def __getitem__(self, index):
