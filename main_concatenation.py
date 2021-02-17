@@ -16,7 +16,7 @@ parser.add_argument('--l2', type=float, default=0.0001)
 parser.add_argument('--l3', type=float, default=1000.0)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--epoch', type=int, default=200)
-parser.add_argument('--train', type=int, default=0)
+parser.add_argument('--train', type=int, default=1)
 parser.add_argument('--data_processed_dir', type=str, default='/home/at/work/dataset/ECEN_404_dataset/vector_machine_data/')
 args = parser.parse_args()
 print(args)
@@ -266,9 +266,14 @@ class dataset(torch.utils.data.Dataset):
             #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_train_data(args.data_processed_dir)
             self.prot_data1, self.prot_data2, self.label = load_train_data(args.data_processed_dir)
         elif name_split == 'val':
-            self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_val_data(args.data_processed_dir)
+            #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_val_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, self.label = load_val_data(
+                args.data_processed_dir)
         elif name_split == 'test':
-            self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_test_data(args.data_processed_dir)
+            #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_test_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, self.label = load_test_data(
+                args.data_processed_dir)
+
         elif name_split == 'one_unseen_prot':
             self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_uniqOne_data(args.data_processed_dir)
         elif name_split == 'unseen_both':
@@ -280,10 +285,11 @@ class dataset(torch.utils.data.Dataset):
 
 
     def __len__(self):
-        return [self.prot_data1.size()[0], self.prot_data2.size()[0]]
+       # return [self.prot_data1.size()[0], self.prot_data2.size()[0]]
+       return self.prot_data1.size()[0]
     def __getitem__(self, index):
-        return self.prot_data1[index], self.prot_data2[index], self.prot_contacts1[index], self.prot_contacts2[index], self.prot_inter[index], self.prot_inter_exist[index], self.label[index]
-
+        #return self.prot_data1[index], self.prot_data2[index], self.prot_contacts1[index], self.prot_contacts2[index], self.prot_inter[index], self.prot_inter_exist[index], self.label[index]
+        return self.prot_data1[index], self.prot_data2[index], self.label[index]
 
 
 ###### train ######

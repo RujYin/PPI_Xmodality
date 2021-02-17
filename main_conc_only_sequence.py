@@ -13,10 +13,10 @@ parser.add_argument('--l0', type=float, default=0.01)
 parser.add_argument('--l1', type=float, default=0.01)
 parser.add_argument('--l2', type=float, default=0.0001)
 parser.add_argument('--l3', type=float, default=1000.0)
-parser.add_argument('--batch_size', type=int, default=32)
+parser.add_argument('--batch_size', type=int, default=1)
 parser.add_argument('--epoch', type=int, default=200)
-parser.add_argument('--train', type=int, default=0)
-parser.add_argument('--data_processed_dir', type=str, default='/scratch/user/rujieyin/proj/PPI_Detection_Xmodality/data_processed/')
+parser.add_argument('--train', type=int, default=1)
+parser.add_argument('--data_processed_dir', type=str, default='/home/at/work/dataset/ECEN_404_dataset/vector_machine_data/')
 args = parser.parse_args()
 print(args)
 
@@ -85,10 +85,6 @@ class net_crossInteraction(nn.Module):
 
         # prot_graph_embedding2 = aminoAcid_embedding2.reshape(b, i*j, d)    ###### GAT
         # prot_graph_embedding2 = self.gat(prot_graph_embedding2, prot_contacts2)   ###### GAT / prot_graph_embedding and prot_seq_embedding are of the same shape
-
-
-
-
         # prot_embedding1 = self.crossInteraction(prot_seq_embedding1, prot_graph_embedding1)
         # prot_embedding2 = self.crossInteraction(prot_seq_embedding2, prot_graph_embedding2)
 
@@ -262,6 +258,38 @@ import scipy.sparse
 class dataset(torch.utils.data.Dataset):
     def __init__(self, name_split='train'):
         if name_split == 'train':
+            #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_train_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, self.label = load_train_data(args.data_processed_dir)
+        elif name_split == 'val':
+            #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_val_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, self.label = load_val_data(
+                args.data_processed_dir)
+        elif name_split == 'test':
+            #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_test_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, self.label = load_test_data(
+                args.data_processed_dir)
+
+        elif name_split == 'one_unseen_prot':
+            self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_uniqOne_data(args.data_processed_dir)
+        elif name_split == 'unseen_both':
+            self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_uniqTwo_data(args.data_processed_dir)
+
+        #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, self.prot_inter, self.prot_inter_exist, self.label = torch.tensor(self.prot_data1), torch.tensor(self.prot_data2), torch.tensor(self.prot_contacts1).float(), torch.tensor(self.prot_contacts2).float(), torch.tensor(self.prot_inter).float(), torch.tensor(self.prot_inter_exist).float().squeeze().float(), torch.tensor(self.label).float()
+        self.prot_data1, self.prot_data2, self.label = torch.tensor(
+            self.prot_data1), torch.tensor(self.prot_data2), torch.tensor(self.label).float()
+
+
+    def __len__(self):
+       # return [self.prot_data1.size()[0], self.prot_data2.size()[0]]
+       return self.prot_data1.size()[0]
+    def __getitem__(self, index):
+        #return self.prot_data1[index], self.prot_data2[index], self.prot_contacts1[index], self.prot_contacts2[index], self.prot_inter[index], self.prot_inter_exist[index], self.label[index]
+        return self.prot_data1[index], self.prot_data2[index], self.label[index]
+
+"""
+class dataset(torch.utils.data.Dataset):
+    def __init__(self, name_split='train'):
+        if name_split == 'train':
             self.prot_data1, self.prot_data2, _, self.label = load_train_data(args.data_processed_dir)
         elif name_split == 'val':
             self.prot_data1, self.prot_data2, _, self.label = load_val_data(args.data_processed_dir)
@@ -276,7 +304,10 @@ class dataset(torch.utils.data.Dataset):
     def __len__(self):
         return [self.prot_data1.size()[0], self.prot_data2.size()[0]]
     def __getitem__(self, index):
-        return self.prot_data1[index], self.prot_data2[index], self.label[index]
+        return self.prot_data1[index], self.prot_data2[index], self.label[index]    
+"""
+
+
 
 
 
@@ -290,11 +321,12 @@ model = nn.DataParallel(model)
 model = model.cuda()
 optimizer = torch.optim.Adam(model.parameters(), 1e-4)
 
-fused_matrix = torch.tensor(np.load(args.data_processed_dir+'fused_matrix.npy')).cuda()
+#fused_matrix = torch.tensor(np.load(args.data_processed_dir+'fused_matrix.npy')).cuda()
 loss_val_best = 1e10
 
 if args.train == 1:
     # train
+    torch.cuda.empty_cache()
     for epoch in range(args.epoch):
         model.train()
         loss_epoch, batch = 0, 0
@@ -332,7 +364,7 @@ del val_loader
 ###### evaluation ######
 # evaluation
 model = net_crossInteraction(args.l0, args.l1, args.l2, args.l3).cuda()
-model.load_state_dict(torch.load('./weights/concatenation_' + str(args.l0) + '_' + str(args.l1) + '_' + str(args.l2) + '_' + str(args.l3) + '.pth'))
+#model.load_state_dict(torch.load('./weights/concatenation_' + str(args.l0) + '_' + str(args.l1) + '_' + str(args.l2) + '_' + str(args.l3) + '.pth'))
 model.eval()
 
 data_processed_dir = args.data_processed_dir
@@ -340,10 +372,10 @@ data_processed_dir = args.data_processed_dir
 print('train')
 eval_set = dataset('train')
 eval_loader = torch.utils.data.DataLoader(dataset=eval_set, batch_size=args.batch_size, shuffle=False)
-cal_affinity_torch(model, eval_loader)
-prot_length1 = np.load(data_processed_dir+'prot_train_length1.npy')
-prot_length2 = np.load(data_processed_dir+'prot_train_length2.npy')
-cal_interaction_torch(model, eval_loader, prot_length1, prot_length2)
+#cal_affinity_torch(model, eval_loader)
+#prot_length1 = np.load(data_processed_dir+'prot_train_length1.npy')
+#prot_length2 = np.load(data_processed_dir+'prot_train_length2.npy')
+#cal_interaction_torch(model, eval_loader, prot_length1, prot_length2)
 
 print('val')
 eval_set = dataset('val')
