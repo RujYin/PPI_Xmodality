@@ -1,8 +1,4 @@
 # PPI_Detection_Xmodality_Pytorch
-**TODO1**: Curate the data (sequences / contact maps etc.)
-**TODO2**: Get the statistics of the data; split and process the data in terms of the number of unseen proteins in the training set
-**TODO3**: Finish coding utils.py according to TODO1, TODO2 and procudures of analyzing the results
-**TODO4**: Improve the model (transformer?)
 
 **Extracted_data:**
 ```
