@@ -84,6 +84,14 @@ def load_train_data(data_processed_dir):
     IC50_train = np.concatenate((lable_P, lable_N))
     return protein_train_A, protein_train_B, IC50_train
 
+def load_debug_data():
+    batch_size = 2
+    kmer_size = 2
+    kmer_length = 2
+    protein_A = (np.random.rand(batch_size, kmer_size, kmer_length)*29).astype(int)
+    protein_B = (np.random.rand(batch_size, kmer_size, kmer_length)*29).astype(int)
+    label = (np.random.rand(batch_size, 1)*2).astype(int)
+    return protein_A, protein_B, label
 
 def load_val_data(data_processed_dir):
 

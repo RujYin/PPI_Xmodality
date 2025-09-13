@@ -106,7 +106,7 @@ class net_crossInteraction(nn.Module):
         affn_prot_prot = affn_prot_prot.view(b, 64*32)
         affn_prot_prot = self.regressor1(affn_prot_prot)
 
-        loss0, loss1 = self.loss_reg(inter_prot_prot, fused_matrix.to(inter_prot_prot.device)), self.loss_affn(affn_prot_prot, label)
+        loss0, loss1 = self.loss_reg(inter_prot_prot), self.loss_affn(affn_prot_prot, label)
         loss = loss0 + loss1
 
         return loss
@@ -166,15 +166,15 @@ class net_crossInteraction(nn.Module):
 
         return inter_prot_prot, affn_prot_prot
 
-    def loss_reg(self, inter, fused_matrix):     
+    def loss_reg(self, inter):     
         reg_l1 = torch.abs(inter).sum(dim=(1,2)).mean()
-        reg_fused = torch.abs(torch.einsum('bij,ti->bjt', inter, fused_matrix)).sum(dim=(1,2)).mean()
+        # reg_fused = torch.abs(torch.einsum('bij,ti->bjt', inter, fused_matrix)).sum(dim=(1,2)).mean()
         
         # group = torch.einsum('bij,bki->bjk', inter**2, prot_contacts2).sum(dim=1)
         # group[group==0] = group[group==0] + 1e10
         # reg_group = ( torch.sqrt(group) * torch.sqrt(prot_contacts2.sum(dim=2)) ).sum(dim=1).mean()
         
-        reg_loss = self.lambda_l1 * reg_l1 + self.lambda_fused * reg_fused
+        reg_loss = self.lambda_l1 * reg_l1 #+ self.lambda_fused * reg_fused
         return reg_loss
 
     def loss_inter(self, inter, prot_inter, prot_inter_exist):
@@ -259,11 +259,17 @@ class dataset(torch.utils.data.Dataset):
     def __init__(self, name_split='train'):
         if name_split == 'train':
             #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_train_data(args.data_processed_dir)
-            self.prot_data1, self.prot_data2, self.label = load_train_data(args.data_processed_dir)
+            ############################ TODO: UNCOMMENT
+            
+#            self.prot_data1, self.prot_data2, self.label = load_train_data(args.data_processed_dir)
+            self.prot_data1, self.prot_data2, self.label = load_debug_data()
         elif name_split == 'val':
             #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_val_data(args.data_processed_dir)
-            self.prot_data1, self.prot_data2, self.label = load_val_data(
-                args.data_processed_dir)
+            ############################ TODO: UNCOMMENT
+#            self.prot_data1, self.prot_data2, self.label = load_val_data(
+#                args.data_processed_dir)
+            self.prot_data1, self.prot_data2, self.label = load_debug_data()
+
         elif name_split == 'test':
             #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_test_data(args.data_processed_dir)
             self.prot_data1, self.prot_data2, self.label = load_test_data(
@@ -273,6 +279,8 @@ class dataset(torch.utils.data.Dataset):
             self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_uniqOne_data(args.data_processed_dir)
         elif name_split == 'unseen_both':
             self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, _, self.prot_inter, self.prot_inter_exist, self.label = load_uniqTwo_data(args.data_processed_dir)
+        elif name_split == 'debug':
+            self.prot_data1, self.prot_data2, self.label = load_debug_data()
 
         #self.prot_data1, self.prot_data2, self.prot_contacts1, self.prot_contacts2, self.prot_inter, self.prot_inter_exist, self.label = torch.tensor(self.prot_data1), torch.tensor(self.prot_data2), torch.tensor(self.prot_contacts1).float(), torch.tensor(self.prot_contacts2).float(), torch.tensor(self.prot_inter).float(), torch.tensor(self.prot_inter_exist).float().squeeze().float(), torch.tensor(self.label).float()
         self.prot_data1, self.prot_data2, self.label = torch.tensor(
@@ -361,6 +369,8 @@ del train_loader
 del val_loader
 
 
+############################ TODO: UNCOMMENT
+'''
 ###### evaluation ######
 # evaluation
 model = net_crossInteraction(args.l0, args.l1, args.l2, args.l3).cuda()
@@ -409,3 +419,4 @@ cal_affinity_torch(model, eval_loader)
 rot_length1 = np.load(data_processed_dir+'uniq_both_length1.npy')
 prot_length2 = np.load(data_processed_dir+'uniq_both_length2.npy')
 cal_interaction_torch(model, eval_loader, prot_length1, prot_length2)
+'''
